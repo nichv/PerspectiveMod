@@ -9,4 +9,4 @@ Forked version was built for 1.7.10
 Updated ForgeGradle --> 2.1
 
 Debugging:
-Compiled using Gradle 3.3. im not a developer so u gotta figure it out on your own
+Compiled using Gradle 3.3. im not a developer so u gotta figure it out on your own, you can find the compiled jar in releases :-D
