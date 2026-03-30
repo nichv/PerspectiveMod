@@ -1,170 +1,64 @@
-package net.canelex.perspectivemod;
+/*
+ * Decompiled with CFR 0.152.
+ * 
+ * Could not load the following classes:
+ *  net.minecraft.client.Minecraft
+ *  net.minecraft.client.renderer.EntityRenderer
+ *  net.minecraft.client.settings.KeyBinding
+ *  net.minecraftforge.fml.client.registry.ClientRegistry
+ *  net.minecraftforge.fml.common.FMLCommonHandler
+ *  net.minecraftforge.fml.common.Mod
+ *  net.minecraftforge.fml.common.Mod$EventHandler
+ *  net.minecraftforge.fml.common.event.FMLInitializationEvent
+ *  net.minecraftforge.fml.common.eventhandler.SubscribeEvent
+ *  net.minecraftforge.fml.common.gameevent.InputEvent$KeyInputEvent
+ *  net.minecraftforge.fml.common.gameevent.TickEvent$RenderTickEvent
+ */
+package net.canelex;
 
-import com.google.common.eventbus.EventBus;
-import com.google.common.eventbus.Subscribe;
-import cpw.mods.fml.client.registry.ClientRegistry;
-import cpw.mods.fml.common.DummyModContainer;
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.LoadController;
-import cpw.mods.fml.common.ModMetadata;
-import cpw.mods.fml.common.event.FMLInitializationEvent;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.InputEvent;
-import net.canelex.perspectivemod.command.CommandPerspectiveSettings;
+import net.canelex.PEntityRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.EntityRenderer;
 import net.minecraft.client.settings.KeyBinding;
-import net.minecraftforge.client.ClientCommandHandler;
-import net.minecraftforge.common.MinecraftForge;
-import org.lwjgl.input.Keyboard;
-import org.lwjgl.opengl.Display;
+import net.minecraftforge.fml.client.registry.ClientRegistry;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.InputEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 
-import java.io.*;
-import java.util.Collections;
+@Mod(modid="flreborn", version="1.0", name="FL Reborn", acceptedMinecraftVersions="[1.8.9]")
+public class PerspectiveMod {
+    private Minecraft mc = Minecraft.getMinecraft();
+    private KeyBinding keyBinding;
+    public boolean cameraToggled = false;
+    public float cameraYaw;
+    public float cameraPitch;
+    private EntityRenderer renderDefault;
+    private EntityRenderer renderCustom;
 
-public class PerspectiveMod extends DummyModContainer
-{
-	private static File saveFile;
-	private static Minecraft mc = Minecraft.getMinecraft();
-	private KeyBinding keyPerspective = new KeyBinding("Toggle Perspective", 33, "Perspective Mod");
+    @Mod.EventHandler
+    public void init(FMLInitializationEvent event) {
+        this.renderDefault = this.mc.entityRenderer;
+        this.renderCustom = new PEntityRenderer(this, this.mc, this.mc.getResourceManager());
+        this.keyBinding = new KeyBinding("Toggle Perspective", 33, "Perspective");
+        ClientRegistry.registerKeyBinding((KeyBinding)this.keyBinding);
+        FMLCommonHandler.instance().bus().register((Object)this);
+    }
 
-	public static boolean returnOnRelease = false;
-	public static boolean perspectiveToggled = false;
-	private static float cameraYaw = 0F;
-	private static float cameraPitch = 0F;
-	private static int previousPerspective = 0;
+    @SubscribeEvent
+    public void onKey(InputEvent.KeyInputEvent event) {
+        if (this.keyBinding.isPressed()) {
+            this.cameraToggled = !this.cameraToggled;
+            this.cameraYaw = this.mc.thePlayer.rotationYaw;
+            this.cameraPitch = this.mc.thePlayer.rotationPitch;
+            this.mc.gameSettings.thirdPersonView = this.cameraToggled ? 1 : 0;
+        }
+    }
 
-	public PerspectiveMod()
-	{
-		super(new ModMetadata());
-
-		// Set mod metadata since modid file will not be read.
-		ModMetadata meta = getMetadata();
-		meta.name = "Perspective Mod 3.0";
-		meta.modId = "perspectivemod";
-		meta.version = "3.0";
-		meta.description = "Allows you to view a full 360 degrees of your character.";
-		meta.url = "www.youtube.com/canelex";
-		meta.authorList = Collections.singletonList("canelex");
-	}
-
-	@Override public boolean registerBus(EventBus bus, LoadController controller)
-	{
-		// Register this class for FMLInitializationEvent
-		bus.register(this);
-		return true;
-	}
-
-	@Subscribe public void init(FMLInitializationEvent event)
-	{
-		// Register forge stuffs
-		ClientRegistry.registerKeyBinding(keyPerspective);
-		ClientCommandHandler.instance.registerCommand(new CommandPerspectiveSettings());
-		FMLCommonHandler.instance().bus().register(this);
-		MinecraftForge.EVENT_BUS.register(this);
-
-		// Load settings from binary file.
-		saveFile = new File(mc.mcDataDir, "perspectivemod-3.0.dat");
-		loadSettings();
-	}
-
-	@SubscribeEvent public void onKeyPress(InputEvent.KeyInputEvent event)
-	{
-		if (Keyboard.getEventKey() == keyPerspective.getKeyCode())
-		{
-			if (Keyboard.getEventKeyState())
-			{
-				perspectiveToggled = !perspectiveToggled;
-				cameraYaw = mc.thePlayer.rotationYaw;
-				cameraPitch = mc.thePlayer.rotationPitch;
-
-				if (perspectiveToggled)
-				{
-					previousPerspective = mc.gameSettings.thirdPersonView;
-					mc.gameSettings.thirdPersonView = 1;
-				}
-				else
-				{
-					mc.gameSettings.thirdPersonView = previousPerspective;
-				}
-			}
-			else if (returnOnRelease)
-			{
-				perspectiveToggled = false;
-				mc.gameSettings.thirdPersonView = previousPerspective;
-			}
-		}
-
-		if (Keyboard.getEventKey() == mc.gameSettings.keyBindTogglePerspective.getKeyCode())
-		{
-			perspectiveToggled = false;
-		}
-	}
-
-	public static float getCameraYaw()
-	{
-		return perspectiveToggled ? cameraYaw : mc.thePlayer.rotationYaw;
-	}
-
-	public static float getCameraPitch()
-	{
-		return perspectiveToggled ? cameraPitch : mc.thePlayer.rotationPitch;
-	}
-
-	public static boolean overrideMouse()
-	{
-		if (mc.inGameHasFocus && Display.isActive())
-		{
-			if (!perspectiveToggled)
-			{
-				return true;
-			}
-
-			// CODE
-			mc.mouseHelper.mouseXYChange();
-			float f1 = mc.gameSettings.mouseSensitivity * 0.6F + 0.2F;
-			float f2 = f1 * f1 * f1 * 8.0F;
-			float f3 = (float) mc.mouseHelper.deltaX * f2;
-			float f4 = (float) mc.mouseHelper.deltaY * f2;
-
-			cameraYaw += f3 * 0.15F;
-			cameraPitch += f4 * 0.15F;
-
-			if (cameraPitch > 90) cameraPitch = 90;
-			if (cameraPitch < -90) cameraPitch = -90;
-		}
-
-		return false;
-	}
-
-	public static void saveSettings()
-	{
-		try
-		{
-			BufferedWriter writer = new BufferedWriter(new FileWriter(saveFile));
-			writer.write(String.valueOf(returnOnRelease));
-			writer.close();
-		} catch (Exception ex)
-		{
-			System.out.println("Failed to save settings: " + ex.getMessage());
-		}
-	}
-
-	public static void loadSettings()
-	{
-		if (!saveFile.exists())
-		{
-			return;
-		}
-
-		try
-		{
-			BufferedReader reader = new BufferedReader(new FileReader(saveFile));
-			returnOnRelease = Boolean.parseBoolean(reader.readLine());
-			reader.close();
-		} catch (Exception ex)
-		{
-			System.out.println("Failed to load settings: " + ex.getMessage());
-		}
-	}
+    @SubscribeEvent
+    public void onTick(TickEvent.RenderTickEvent event) {
+        this.mc.entityRenderer = this.cameraToggled ? this.renderCustom : this.renderDefault;
+    }
 }

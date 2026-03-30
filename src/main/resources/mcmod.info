@@ -1,0 +1,11 @@
+[
+{
+  "modid": "flreborn",
+  "name": "FL Reborn",
+  "description": "Lightweight / original version: Toggle full-control 3rd person view of your character.",
+  "version": "1.0",
+  "mcversion": "1.8.9",
+  "url": "youtube.com/canelex",
+  "authorList": ["canelex, nich"]
+}
+]
